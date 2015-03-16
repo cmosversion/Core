@@ -1,0 +1,10 @@
+TextManagerJs = {
+    actions: {
+        selectAll: function (element) {
+
+        }
+        , deleteSelected: function (element) {
+
+        }
+    }
+}

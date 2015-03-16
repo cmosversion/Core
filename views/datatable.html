@@ -1,0 +1,15 @@
+<table {{for attribute, value in table_params}} {{=attribute}}="{{=value}} " {{pass}}>
+  {{if isinstace(headers, list)}}
+  <thead {{for attribute, value in head_params}} {{=attribute}}="{{=value}} " {{pass}}>
+      {{for header_key, head in headers}}
+          <tr {{for attribute, value in head['head_params']}} {{=attribute}}="{{=value}} " {{pass}}>
+              <th  {{for attribute, value in head['header_params']}} {{=attribute}}="{{=value}} " {{pass}}>
+                  {{=head['header']}}
+              </th>
+          </tr>
+      {{pass}}
+  </thead>
+  {{pass}}
+  <tbody>
+  </tbody>
+</table>

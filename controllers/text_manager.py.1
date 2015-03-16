@@ -1,0 +1,145 @@
+# coding: utf8
+# try something like
+def __get_row_text(row):
+    r = []
+    identifier_definition = (db.text_identifier_definition.text_identifier_id==db.text_identifier.id)
+    identifier_row = (db.text_identifier_definition.text_definition_id==row.id)
+    for dr in db( identifier_definition & identifier_row ).select(db.text_identifier.rsrc, db.text_identifier.iden):
+        r.append(DIV(XML('<i class="fa fa-times  fa-fw" style="color:red"></i>' + '.'.join([dr.rsrc, dr.iden])), _style="border:1px solid black;"))
+    return r
+
+def __get_definition_headers():
+    return {
+        'text_definition.id':{'label':'ID', 'width':'10%', 'class':'hidden', 'truncate': 100, 'selected':False}
+        , 'text_definition.definition':{'label':'Definition', 'width':'50%', 'class':'test', 'truncate':100, 'selected':False}
+        , 'text_definition.u_id':{'label':'Unique Identifier', 'width':'5%', 'class':'hidden', 'truncate': 100, 'selected':False}
+    }
+
+def __get_identifier_headers():
+    return {
+        'text_identifier.id':{'label':'ID', 'width':'5%', 'class':'hidden', 'truncate': 100, 'selected':False}
+        , 'text_identifier.rsrc':{'label':'Resource', 'width':'50%', 'class':'test', 'truncate':100, 'selected':False}
+        , 'text_identifier.iden':{'label':'Identifier', 'width':'40%', 'class':'test', 'truncate': 100, 'selected':False}
+        , 'text_identifier.u_id':{'label':'Unique Identifier', 'width':'5%', 'class':'hidden', 'truncate': 100, 'selected':False}
+    }
+
+def __get_definition_identifier_extra_columns():
+    return [
+        {
+            'label':'Identifier', 'class': 'identifier_td', 'width':'40%', 'selected':False
+           , 'content': lambda row, rc: __get_row_text(row)
+        }
+        , {
+            'label':  I(_class="fa fa-trash-o fa-fw", _style="color:red")
+                + I(_class="fa fa-pencil fa-fw", _style="color:blue")
+                + INPUT(_name='text_identification_definition_id', _value='all', _type='checkbox',  _onlcick="TextManagerIndexJs.actions.selectAll(this) return false;")
+            , 'class': 'identifier_actions', 'width':'10%', 'selected':False
+            , 'content': lambda row, rc: 
+                I(_class="fa fa-trash-o fa-fw", _style="color:red")
+                + I(_class="fa fa-pencil fa-fw", _style="color:blue")
+                + INPUT(_name='text_identification_definition_id_'+  str(row.id), _value=row.id, _type='checkbox')
+        }
+    ]
+
+def __get_definition_extra_columns():
+    return [
+        {
+            'label': A(XML(I(_class="fa fa-trash-o fa-fw", _style="color:red")), _href="#javascript:", _onclick="TextManagerIndexJs.actions.deleteSelected(this);")
+                + INPUT(_name='definition_id', _value='all', _type='checkbox', _onlcick="TextManagerJs.actions.selectAll(this) return false;")
+            , 'class': 'identifier_actions', 'width':'10%', 'selected':False
+            , 'content': lambda row, rc:
+                I(_class="fa fa-trash-o fa-fw", _style="color:red")
+                + I(_class="fa fa-pencil fa-fw", _style="color:blue")
+                + INPUT(_name='definition_id_' + str(row.id), _value=row.id, _type='checkbox')
+        }
+    ]
+
+def __get_identifier_extra_columns():
+    return [
+        {
+            'label': I(_class="fa fa-trash-o fa-fw", _style="color:red")
+                + I(_class="fa fa-pencil fa-fw", _style="color:blue")
+                + INPUT(_name='identifier_id', _value='all', _type='checkbox', _onlcick="TextManagerIndexJs.actions.selectAll(this) return false;")
+            , 'class': 'identifier_actions', 'width':'10%', 'selected':False
+            , 'content': lambda row, rc:
+                I(_class="fa fa-trash-o fa-fw", _style="color:red")
+                + I(_class="fa fa-pencil fa-fw", _style="color:blue")
+                + INPUT(_name='identifier_id_' + str(row.id), _value=row.id, _type='checkbox')
+        }
+    ]
+
+def __get_resource(form):
+    a = form.vars.application
+    c = form.vars.controller
+    f = form.vars.function
+    return a + '___' + c + '___' + f
+
+def __process_text_manager(form):
+    if form.process().accepted:
+        i = form.vars.identifier
+        d = form.vars.definition
+        r = __get_resource(form)
+
+        text_manager.add_definition_identifier(d, r, i)
+
+        response.flash = 'Successfully added'
+    elif form.errors:
+        response.flash = 'form has errors'
+
+def __get_text_manager_form(text_manager_db):
+    return SQLFORM.factory(
+         text_manager_db.text_definition
+        , Field('application', 'string', requires=IS_NOT_EMPTY())
+        , Field('controller', 'string', requires=IS_NOT_EMPTY())
+        , Field('function', 'string', requires=IS_NOT_EMPTY())
+        , Field('identifier', 'string', requires=IS_NOT_EMPTY())
+    )
+
+def index():
+
+    text_manager_db = text_manager.getDb()
+    form = __get_text_manager_form(text_manager_db)
+    __process_text_manager(form)
+
+    iden_headers = __get_identifier_headers()
+
+    definition_identifier_extracolumns = __get_definition_identifier_extra_columns()
+    definition_extracolumns = __get_definition_extra_columns()
+    identifier_extracolumns = __get_identifier_extra_columns()
+
+    headers = __get_definition_headers()
+
+    definition_identifier_table = plugin_datatable(
+        db(db.text_definition.id>0).select()
+        , headers=headers
+        , extracolumns=definition_identifier_extracolumns
+        , _class='sql_table2', _style='width:100%', _id='text_definition_identifier'
+    )
+
+    headers['text_definition.definition']['truncate'] = 500
+    definition_record = db(db.text_definition.id>0).select()
+
+    #for record in definition_record:
+    #    record.definition = XML('<input type="radio">' + record.definition)
+
+    definition_table = plugin_datatable(
+        definition_record
+        , headers=headers
+        , extracolumns=definition_extracolumns
+        , _id='text_definition', _class='sql_datatable_1', _style='width:100%'
+    )
+
+    identifier_table = plugin_datatable(
+        db(db.text_identifier.id>0).select()
+        , headers=iden_headers
+        , extracolumns=identifier_extracolumns
+        , _class='sql_datatable', _style='width:100%', _id='text_identifier'
+    )
+
+    response.title = 'Text Manager'
+    return dict(
+        definition_identifier_table=definition_identifier_table
+        , definition_table=definition_table
+        , identifier_table=identifier_table
+        , form=form
+    )
