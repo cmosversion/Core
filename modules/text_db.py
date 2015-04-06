@@ -294,8 +294,6 @@ class TextDefinitionIdentifierDb(CoreTableDb):
             , text_definition_id=definition_id
         )
 
-    def save(self, **params):
-        a=1
 
 
 # DEFINITION
@@ -412,3 +410,6 @@ class TextIdentifierDb(CoreTableDb):
 
     def is_valid_basic_identifier(self, appl, cont, func, iden):
         return True
+
+class TextDb(ItemDb):
+    _name = 'Text'

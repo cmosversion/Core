@@ -1,18 +1,16 @@
 #!/usr/bin/env python
 # coding: utf8
 from gluon import *
-from gluon.dal import DAL
+
+from core import Core
 from core_util import CoreUtil
 from core_util import DataUtil
 
-class Core(object):
-    def get_class(self, class_name=None):
-        if class_name is None:
-            return CoreUtil.get_class(self)
-        return CoreUtil.get_class(class_name)
+import re
 
 class CoreDb(Core):
     _db=None
+    _name=None
     def __init__(self, db=None):
         if self.has_no_connection():
             self._db = db
@@ -35,6 +33,9 @@ class CoreDb(Core):
     def has_connection_and_table():
         return (self.has_no_connection()!=True and self.is_table_undefined(self._table)!=True)
 
+    def _get_name(self):
+        return self._name
+
 class CoreTableDb(CoreDb):
     _table_name=None
     _fields=None
@@ -48,6 +49,14 @@ class CoreTableDb(CoreDb):
             raise ValueError(DataUtil().get_valid_table_name_message())
 
         self._init_table()
+
+    def _get_table_name(self):
+        if self._table_name is None:
+            name = self._get_name()
+            table_name = self.camel_case_to_underscore(name)
+            self._table_name = table_name
+
+        return self._table_name
 
     def _init_db(self):
         self._define_table_name()
@@ -112,3 +121,11 @@ class CoreTableDb(CoreDb):
 
     def get_table(self):
         return getattr(self._db, self._table_name)
+
+    def get_table_column(self, column_name):
+        return getattr(self.get_table(), column_name)
+
+    def is_empty(self):
+        for field_key, field in self.get_row():
+            return True
+        return False

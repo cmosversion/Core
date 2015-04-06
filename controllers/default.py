@@ -26,7 +26,24 @@ def index():
     #    res = row.ab1
     #    break
     #response.flash = T(res)
-    return dict(message=T('Hello World'))
+    mess = T('Hello World')
+    from core_db import CoreTableDb
+    from core_db import CoreDb
+    class TestDb(CoreTableDb):
+        _fields = [
+            Field('data1', 'string')
+        ]
+        _name='MyTest'
+        def _define_table_name(self):
+           self._get_table_name()
+
+        def get_name(self):
+            return self._table_name
+
+    test = TestDb(db)
+    mess = test.get_name()
+
+    return dict(message=mess)
 
 def test():
     return dict()

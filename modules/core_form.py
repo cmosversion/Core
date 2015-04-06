@@ -10,6 +10,7 @@ from core_util import CoreUtil
 class CoreForm(object):
     ADD_PREFIX = 'add_core_'
     DEFAULT_RESOURCE = 'CoreForm__None__None'
+    _allow_replicate_core_label = True
     _auto_define = True
     _params = dict()
     _text_manager = None
@@ -40,6 +41,9 @@ class CoreForm(object):
         if self._params.get('auto_define') != None:
             if self._params.get('auto_define')==False:
                 self._auto_define = False
+
+        if self._params.get('allow_replicate_core_label') is not None:
+            self._allow_replicate_core_label = self._params.get('allow_replicate_core_label')
 
     def define_text_manager(self):
         db = self._params.get('db')
@@ -84,12 +88,14 @@ class CoreForm(object):
     def set_field_list(self, field_list):
         if isinstance(field_list, list):
             self._field_list = field_list
+
     def set_option_list(self, option_list):
         if isinstance(option_list, dict):
             self.__option_list = {}
             for option_key, option_data in option_list:
                 if (isinstance (option_data, dict)) or (isinstance(option_data, list)):
                     self.__option_list[option_key] = option_data
+
     def get_option_list(self, option_name, option_type='option'):
         if self.__option_list.get(option_name) != None:
             if option_type=='option':
@@ -101,6 +107,7 @@ class CoreForm(object):
                 return options
             return self.__option_list[option_name]
         return []
+
     def define_field(self, fieldname):
 
         if (hasattr(self, fieldname)) and callable(getattr(self, fieldname)):
@@ -118,10 +125,9 @@ class CoreForm(object):
             if callable_method.startswith(self.ADD_PREFIX):
                 self.define_field(callable_method)
 
-
-
     def get_field_list(self):
         return self._field_list
+
     def get_option_list(self, ident):
         if isinstance(self.__option_list, dict):
             if hasattr(self.__option_list, ident):
@@ -133,14 +139,29 @@ class CoreForm(object):
             raise TypeError(type(self).__name__() + ".add_field requires a Field type but " + type(field).__name__ + " was passed")
         self._field_list.append(field)
 
+    def add_field_with_label(self, field_type, field_name):
+        label = self.get_label(field_name + '_label')
+        self.add_field(Field(field_name, field_type, label))
+
     def get_label(self, **params):
         resource = params.get('resource')
+        request_resource = resource
+
         if (CoreUtil.is_str(resource) != True):
             resource = self.DEFAULT_RESOURCE
-        if params.get('identifier')==None:
+
+        identifier = params.get('identifier')
+
+        if identifier is None:
             raise NotImplementedError("identifier undefined")
 
-        return self.text_manager.getText(resource, params.get('identifier'))
+        label = self.text_manager.getText(resource, identifier)
+
+        if sel._allow_replicate_core_label and request_resource is not None and label is None:
+            label = self.text_manager.getText(self.DEFAULT_RESOURCE, identifier)
+            self.text_manager.add_definition_identifier(label, resource, identifier)
+
+        return label
 
     def get_form(self):
         return self._form
