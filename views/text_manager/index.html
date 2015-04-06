@@ -1,0 +1,51 @@
+{{extend 'text_manager/layout.html'}}
+
+<style>
+   div#text_definition_id_length select {width:70px;}
+   div#text_definition_id_filter input {width:200px;}
+   div#text_identifier_id_length select {width:70px;}
+   div#text_identifier_id_filter input {width:200px;}
+    .definitions_header {width:88%;}
+   td.identifier_actions input {vertical-align:text-bottom}
+</style>
+{{=form.custom.begin}}
+{{include 'text_manager/form.html'}}
+<div>
+<fieldset>
+    <legend>
+			<a data-toggle="collapse" data-target="#definition_identifier_div_all">Definition/Identifier List</a>
+            <span class="pull-right">
+                <input type="submit" value="Save" class="btn" />
+            </span>
+    </legend>
+<div id="definition_identifier_div_all" class="collapse in">
+<table>
+    <tbody>
+        <tr>
+            <td style="width:50%" class="w2p_fl">
+                <a data-toggle="collapse" data-target="#definition_table_list_div"><div><h3>Definition List</h3></div></a>
+                <div id="definition_table_list_div" class="collpse in">
+                    {{=definition_table}}
+                </div>
+            </td>
+            <td style="padding-left:25px; width:50%" class="w2p_fl">
+                <a data-toggle="collapse" data-target="#identifier_table_list_div"><div><h3>Identifier List</h3></div></a>
+                <div id="identifier_table_list_div" class="collapse in">
+                    {{=identifier_table}}
+                </div>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br />
+<div class="container">
+    <a data-toggle="collapse" data-target="#definition_identifier_div"><div><h3>Definition List w/ Identifiers</h3></div></a>
+    <div id="definition_identifier_div" class="collapse in">
+        {{=definition_identifier_table}}
+    </div>
+</div>
+</div>
+</fieldset>
+</div>
+{{=form.custom.end}}
+{{=BEAUTIFY(response.debug)}}
