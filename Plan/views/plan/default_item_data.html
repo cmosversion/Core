@@ -1,0 +1,21 @@
+<div class="item_data">
+{{try:}}
+    {{item_data}}
+{{except NameError:}}
+    {{item_data = None}}
+{{pass}}
+
+{{if item_data is not None:}}
+    {{for data in item_data:}}
+
+        <div class="data">
+            <textarea  class="data-content">{{=data.get('data')}}</textarea>
+            {{if data.get('icons') is not None:}}
+                    {{for icon in data.get('icons'):}}
+                        <i class="data-icon-controls {{=icon}}"></i>
+                    {{pass}}
+            {{pass}}
+        </div>
+    {{pass}}
+{{pass}}
+</div>

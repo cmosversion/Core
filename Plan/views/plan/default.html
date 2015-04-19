@@ -1,0 +1,62 @@
+{{extend 'plan/layout.html'}}
+{{block body}}
+{{def process_default_item(item, depth=0):}}
+        {{class_owner = ''}}
+        {{if item.get('item') is None and item.get('label') is not None: }}
+            {{class_owner=item.get('item_id')}}
+            {{if item.get('item') is not None or item.get('label') is not None:}}
+                <a data-toggle="collapse" data-target=".{{=class_owner}}">
+                    <li class="item">
+                        {{include 'plan/default_item.html'}}
+                    </li>
+                </a>
+            {{pass}}
+        {{else:}}
+            {{if item.get('item') is not None or item.get('label') is not None:}}
+                <li class="item">
+                    {{include 'plan/default_item.html'}}
+                </li>
+            {{pass}}
+        {{pass}}
+        {{if item.get('data') is not None:}}
+            {{item_data = item.get('data')}}
+            <li class="data {{=class_owner}} collapse in">{{include 'plan/default_item_data.html'}}</li>
+        {{pass}}
+        {{if item.get('items') is not None:}}
+            <li class="{{=class_owner}} collapse in">{{process_default_items(item.get('items'), depth+1)}}</li>
+        {{pass}}
+{{pass}}
+
+{{def process_default_items(items, depth=0):}}
+    <ul class="item">
+     {{count=0}}
+    {{for item in items:}}
+        {{process_default_item(item, depth)}}
+    {{pass}}
+    </ul>
+{{pass}}
+
+<div class="container">
+    <a data-toggle="collapse" data-target=".root-parent">
+        <div class="head-control">
+            <div class="head-title">Plan</div>
+            <div class="head-controls"></div>
+        </div>
+    </a>
+    <div class="container root-parent collapse in">
+        <div class="item-content">
+        {{if data is not None:}}
+            {{if data.get('form') is not None:}}
+                {{form = data.get('form')}}
+                        {{form.custom.begin}}
+                        {{if data.get('items') is not None:}}
+                            {{process_default_items(data.get('items'))}}
+                        {{pass}}
+
+                {{form.custom.end}}
+            {{pass}}
+        {{pass}}
+        </div>
+    </div>
+</div>
+{{end}}

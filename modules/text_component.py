@@ -3,14 +3,14 @@
 from gluon import *
 
 from core_db import CoreDb
-from component import Component
-from component import DataTable
+from core_component import CoreComponent
+from core_component import DataTable
 from text_db import TextIdentifierDb
 from text_db import TextDefinitionDb
 from text_db import TextDefinitionIdentifierDb
 from text_db import TIDb
 
-class TextComponent(Component):
+class TextComponent(CoreComponent):
     _class = None
     _width = None
     _text_db = None
