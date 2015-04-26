@@ -164,8 +164,7 @@ class ItemDb(CoreTableDb):
         return primary_items
 
     def __get_parent_child_item_db(self, parent_item_name, item_name):
-        class_ = string.__class__
-        parent_child_item_name = class_.join('_', [parent_item_name, item_name])
+        parent_child_item_name = '_'.join([parent_item_name, item_name])
         parent_child_item_class = self.underscore_to_camel_case(parent_child_item_name)
         parent_child_item_db = globals()[parent_child_item_class](self._db)
 
@@ -359,22 +358,19 @@ class ItemItemDb(CoreTableDb):
         self._define_fields()
 
     def _define_items_db(self):
-        class_ = string.__class__
         parent_name = self._get_name()
-        items_db_name = class_.join('', [parent_name, 'ItemsDb'])
+        items_db_name = ''.join([parent_name, 'ItemsDb'])
         self._items_db = globals()[items_db_name](self._db)
 
     def _define_child_db(self):
-        class_ = string.__class__
         child_name = self._child_name
-        child_db_name = class_.join('', [child_name, 'Db'])
+        child_db_name = ''.join([child_name, 'Db'])
 
         self._child_db = globals()[child_db_name](self._db)
 
     def _define_table_name(self):
-        class_ = string.__class__
         parent_name = self._get_name()
-        self._table_name = class_.join('', [parent_name, child_name, 'Db'])
+        self._table_name = ''.join([parent_name, child_name, 'Db'])
 
     def _define_fields(self):
         self._fields = [
@@ -385,54 +381,92 @@ class ItemItemDb(CoreTableDb):
 class ItemUtil(DataUtil):
 
     @staticmethod
-    def item_to_form_data(self, items, **params):
-        prefix = params.get('prefix', 'item')
+    def item_to_form_data(item, **params):
+        prefix = params.get('prefix')
         form_data = params.get('form_data', dict())
+        item_form = params.get('item_form', dict())
 
-        for item in items:
-            item_data = item.get('data')
-            item_field = item.get('field')
-            item_items = item.get('items')
+        item_data = item.get('data')
+        item_field = item.get('field')
+        item_items = item.get('items')
+        item_type = item.get('item')
 
-            if (item_field is not None) and (length(item_field) > 0):
-                for field in item_field:
-                    field_prefix = prefix
-            if (item_data is not None) and (length(item_data) > 0):
 
-                for data in item_data:
-                    data_sort_order = data.get_sort_order
-                    data_field_name = string.__class__.join('_', [prefix, 'data', str(data_sort_order)])
-                    form_data[data_field_name] = data.get('data')
+        if (item_field is not None) and (len(item_field) > 0):
+            for field_name, field in item_field.iteritems():
+                prefixes = []
+                if prefix is not None:
+                    prefixes.append(prefix)
+                prefixes.append(item_type)
+                prefixes.append('field')
+                prefixes.append(field_name)
+                field_key = '-'.join(prefixes)
+                form_data[field_key] = field.get('value', '')
+                field_params = dict()
+                field_params['item_id'] = field_key
+                field_params['value'] = field.get('value', '')
+                item_form[field_name] = field_params
 
-            prefixes = [prefix, item_type]
+        if (item_data is not None) and (len(item_data) > 0):
+            for data_key, data in item_data.iteritems():
+                data_field = data.get('field')
+                prefixes = []
+                if prefix is not None:
+                    prefixes.append(prefix)
+                prefixes.append(item_type)
+                prefixes.append('data')
+                prefixes.append(str(data_key))
 
-            if item_sort_order is not None:
-                prefixes.append(str(item_sort_order))
+                if (data_field is not None) and (len(data_field) > 0):
+                    for field_name, field in data_field.iteritems():
+                        prefixes.append('data')
+                        prefixes.append('field')
+                        prefixes.append(field_name)
+                        field_key = '-'.join(prefixes)
+                        form_data[field_key] = field.get('value', '')
+                        field_params = dict()
+                        field_params['item_id'] = field_key
+                        field_params['value'] = field.get('value', '')
+                        item_form['data_' + field_name] = field_params
 
-            item_field_name = string.__class__.join('_', prefixes)
+        if item_items is not None:
+            item_form['items'] = item_form.get('items', dict())
+            item_form_items = item_form['items']
 
-            form_data[item_field_name] = item.get('item')
+            for item_item_key, item_item in item_items.iteritems():
+                item_item_type = item_item.get('item')
+                prefixes = []
+                if prefix is not None:
+                    prefixes.append(prefix)
 
-            if item_items is not None:
+                prefixes.append(item_type)
+                prefixes.append(item_item_type)
+                prefixes.append(str(item_item_key))
+
+                item_field_name = '-'.join(prefixes)
 
                 item_params = dict(
                     prefix=item_field_name
                     , form_data=form_data
                 )
 
-                ItemUtil.item_to_form_data(item_items, **item_params)
+                item_form_items[item_item_key] = item_form_items.get(item_item_key, dict())
+                item_form_items_item = item_form_items[item_item_key]
+                item_params['item_form'] = item_form_items_item
 
-        return form_data
+                ItemUtil.item_to_form_data(item_item, **item_params)
+
+        return item_form#form_data
 
     @staticmethod
-    def form_data_to_item(self, form_data, item_types):
+    def form_data_to_item(form_data, item_type_ids):
         part_depth = 3
         min_depth = 0
         item_format = {}
         orig_current_item = None
         special_fields = ['data', 'field']
 
-        for name, value in names.iteritem_format():
+        for name, value in form_data.iteritems():
             parts = name.split('-')
             parts_count = len(parts)
             max_depth = parts_count/part_depth
@@ -504,6 +538,11 @@ class ItemUtil(DataUtil):
 
 
         return item_format
+
+    @staticmethod
+    def form_data_to_ui(form_data):
+
+        return form_data
 
     @staticmethod
     def fill_dict_on_none(item, fields=[]):

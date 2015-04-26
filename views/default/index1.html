@@ -1,0 +1,261 @@
+<html>
+
+<head>
+    <!-- include stylesheets -->
+  {{
+  response.files.insert(0,URL('static','css/web2py.css'))
+  response.files.insert(1,URL('static','css/bootstrap.min.css'))
+  response.files.insert(2,URL('static','css/bootstrap-responsive.min.css'))
+  response.files.insert(3,URL('static','css/web2py_bootstrap.css'))
+  }}
+    {{include 'web2py_ajax.html'}}
+    <script src="{{=URL('static','js/bootstrap.min.js')}}"></script>
+    <script src="{{=URL('static','js/trackingjs/build/tracking.js')}}"></script>
+</head>
+<body>
+
+<style>
+  * {
+  margin: 0;
+  padding: 0;
+  font-family: Helvetica, Arial, sans-serif;
+}
+  video, canvas, canvas1 {
+    margin-left: 0px !important;
+    margin-top: 2px !important;
+    /*width: 600px !important;
+    height: 450px !important;*/
+    left:0px !important;
+    top:0px !important;
+    position: absolute !important;
+  }
+  video {
+      margin-left: -25px !important;
+
+      z-index:500 !important;
+  }  
+  canvas {
+      
+      z-index:1000 !important;
+  }
+  canvas1 {
+      
+      z-index:2000 !important;
+  }
+  .d1 {
+    margin-left: 0px;
+    margin-top: 0px;
+    left:0px;
+    top:500px;
+    position: absolute;
+  }
+  .d2 {
+    margin-left: 0px;
+    margin-top: 0px;
+    left:0px;
+    top:600px;
+    position: absolute;
+  }
+  </style>
+<div>
+    
+    
+      <video id="video" width="600" height="450" preload autoplay loop muted controls></video>
+      <canvas id="canvas" width="600" height="450"></canvas>
+      <canvas id="canvas1" width="600" height="450"></canvas>
+</div>
+   <div class="d1" id='data_ref'></div>
+   <div class="d2" id='data_r'></div>
+  <script>
+    SheetReferenceJs = {
+    x: 0
+    , y:0
+    , height: 0
+    , width: 0
+    , color: ''
+    , create: function(data) {
+        var ref = jQuery.extend({}, SheetReferenceJs);
+        ref.x = data.x;
+        ref.y = data.y;
+        ref.height = data.height;
+        ref.width = data.width;
+        ref.color = data.color;
+
+        return ref;
+    }
+    , toJson: function () {
+        return {
+            x: this.x
+            , y: this.y
+            , height: this.height
+            , width: this.width
+            , color: this.color
+        }
+    }
+    , toString: function () {
+        return JSON.stringify(this.toJson())
+    }
+    , isEqualColor: function (color) {
+        return this.color === color
+    }
+    , inBounds: function (start, distance, start_ref, distance_ref) {
+        return (
+            this.between(start, start_ref, (start_ref+(distance_ref)), true)
+            &&
+            this.between((start+distance), start_ref, (start_ref+(distance_ref)), true)
+        );
+
+    }
+    , between: function (value, a, b, inclusive) {
+        var min = Math.min.apply(Math, [a,b]);
+        var max = Math.max.apply(Math, [a,b]);
+
+        return inclusive ? ((value >= min) && (value <= max)) : ((value > min) && (value < max));
+    }
+    , withinBounds: function (sheet_reference_js) {
+    //alert(sheet_reference_js.y, sheet_reference_js.height, this.y, this.height)
+        return (
+            this.isEqualColor(sheet_reference_js.color)
+            &&
+            this.inBounds(sheet_reference_js.y, sheet_reference_js.height, this.y, this.height)
+            &&
+            this.inBounds(sheet_reference_js.x, sheet_reference_js.width, this.x, this.width)
+        );
+    }
+};
+   ref1 = SheetReferenceJs.create({x:2, y:2, height: 20, width: 20, color: 'black'});
+   ref2 = SheetReferenceJs.create({x:300, y:300, height: 30, width: 30, color: 'black'});
+   ref3 = SheetReferenceJs.create({x:200, y:200, height: 10, width: 10, color: 'black'});
+  //  alert(ref1.withinBounds(ref2));
+  var canvas = document.getElementById('canvas');
+  var video = document.getElementById('video');
+  var context = canvas.getContext('2d');
+  var canvas1 = document.getElementById('canvas1');
+  var context1 = canvas1.getContext('2d');
+//context.fillStyle = 'red';
+//context.fillRect(200, 200, 20, 20);
+          
+        //  ctx.closePath();
+          //context.fill();
+  var refs = [ref1, ref2]
+
+  context.clearRect(0, 0, canvas1.width, canvas1.height);
+      $.each(refs, function (index, item) {
+          var rect = item.toJson();
+
+          context1.strokeStyle = 'blue';
+          context1.strokeRect(rect.x, rect.y, rect.width, rect.height);
+          context1.font = '11px Helvetica';
+          context1.fillStyle = "#fff";
+          $('#data_ref').append("<div>" + rect.x + ':' + rect.y + ':' + rect.width + ':' + rect.height + ':' + rect.color + "</div>");
+      });
+
+
+video.addEventListener("play", function(){
+//    video.addEventListener("seeked", function(){
+//        alert(video.width + ':' + video.height);
+     $(canvas).css("left", $(this).css("left"));
+$('#data_ref').append("<div>" + $(this).css("left") +"</div>");
+  $(canvas).css("left", $(this).css("left"));
+  $(canvas).css("top", $(this).css("top"));
+  $(canvas).css("width", $(this).css("width"));
+  $(canvas).css("height", $(this).css("height"));
+  $(canvas1).css("left", $(this).css("left"));
+  $(canvas1).css("top", $(this).css("top"));
+  $(canvas1).css("width", $(this).css("width"));
+  $(canvas1).css("height", $(this).css("height"));
+  
+  $(canvas1).css("height", $(this).css("height"));
+      $.each([canvas], function (index, citem) {
+              var top = $(citem).css('top').replace(/[a-zA-Z]+/,'');
+              var left = $(citem).css('left').replace(/[a-zA-Z]+/,'');
+              var width = $(citem).css('width').replace(/[a-zA-Z]+/,'');
+              var height = $(citem).css('height').replace(/[a-zA-Z]+/,'');
+          
+              context1.strokeStyle = 'blue';
+              context1.strokeRect(left+8, top, width, height);
+      });
+    });
+//});
+  // var rect = ref3.toJson();
+
+          //context.strokeStyle = 'black';
+          //context.fillRect(rect.x, rect.y, rect.width, rect.height);
+          //context.fillStyle = "black";
+         context1.fill()
+
+         
+
+   $(document).ready(function() {
+
+        var sources = MediaStreamTrack.getSources(function (sourceInfos) {
+            videosources = [];
+
+            for (var i = 0; i != sourceInfos.length; ++i) {
+                var sourceInfo = sourceInfos[i];
+                if (sourceInfo.kind === 'audio') {
+                    audioSource=sourceInfo.id;
+
+                } else if (sourceInfo.kind === 'video') {
+                    videosources.push(sourceInfo);
+
+                }
+            }
+            var video = document.getElementById('video');
+            var canvas = document.getElementById('canvas');
+            var context = canvas.getContext('2d');
+            
+            tracking.ColorTracker.registerColor('black', function(r, g, b) {
+                
+                return r + g + b < 10;
+            });
+
+            var tracker = new tracking.ColorTracker(['black']);
+            tracker.setMinDimension(2);
+            tracker.setMinGroupSize(2);
+            video_src = $(videosources).get(-1);
+
+            if (! video_src) {
+                video_src = false;
+            }
+
+             var tparams = { camera: true, video_source: video_src }
+//alert(JSON.stringify(tparams));
+             tracking.track('#video', tracker, tparams);
+              /*var mref = SheetReferenceJs.create({
+
+              });*/
+
+             tracker.on('track', function(event) {
+              context.clearRect(0, 0, canvas.width, canvas.height);
+              if (event.data.length === 0) {
+                // $('#data_r').val('');
+              } else {
+                  $('#data_r').children().remove();
+                event.data.forEach(function(rect) {
+                    var  sr = SheetReferenceJs.create(rect);
+                    $.each(refs, function (index, item) {
+                        if (item.withinBounds(sr)) {
+                          
+                            alert('found');
+                        }
+
+                    });
+                  context.strokeStyle = 'yellow';
+                  context.strokeRect(rect.x, rect.y, rect.width, rect.height);
+                  context.font = '11px Helvetica';
+                  context.fillStyle = "#fff";
+                    $('#data_r').append("<div>" + rect.x + ':' + rect.y + ':' + rect.width + ':' + rect.height + ':' + rect.color + "</div>");
+               });
+            }
+          });
+
+        });
+   });
+
+
+    // initGUIControllers(tracker);
+
+  </script>
+</body>
+</html>

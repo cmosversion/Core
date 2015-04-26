@@ -1,0 +1,335 @@
+<html>
+    <head>
+    <!-- include stylesheets -->
+  {{
+  response.files.insert(0,URL('static','css/web2py.css'))
+  response.files.insert(1,URL('static','css/bootstrap.min.css'))
+  response.files.insert(2,URL('static','css/bootstrap-responsive.min.css'))
+  response.files.insert(3,URL('static','css/web2py_bootstrap.css'))
+  }}
+    {{include 'web2py_ajax.html'}}
+    <script src="{{=URL('static','js/bootstrap.min.js')}}"></script>
+    <script src="{{=URL('static','js/trackingjs/build/tracking.js')}}"></script>
+</head>
+    <body>
+<!-- <video id="video1" width="600" height="450" preload autoplay loop muted controls></video> -->
+<br />
+<video style='display:none' id="video2" width="600" height="450" preload autoplay loop muted controls></video>
+<style>
+    canvas {
+        position:absolute;
+
+    }
+    #canvas {
+        z-index:100;
+    }
+    #canvas1 {
+        z-index:200;
+        display:none;
+    }
+</style>
+<canvas id="canvas" width="600" height="450"></canvas>
+<canvas id="canvas1" width="600" height="450"></canvas>
+<script>
+function webcam() {
+if (!navigator.getUserMedia) {
+    navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+}
+
+if (!navigator.getUserMedia) {
+    return alert('getUserMedia not supported in this browser.');
+}
+var audioSource;
+function errorCallback(error){
+    alert("navigator.getUserMedia error: ", error);
+}
+
+
+var canvas = document.getElementById('canvas');
+var context = canvas.getContext('2d');
+var canvas1 = document.getElementById('canvas1');
+var context1 = canvas1.getContext('2d');
+
+var audioSource;
+var cw = Math.floor(canvas.clientWidth);
+var ch = Math.floor(canvas.clientHeight);
+canvas.width = cw;
+canvas.height = ch;
+
+//off dom video player
+var video = document.getElementById('video2'); //createElement("video");
+//video.autoplay="autoplay";
+
+/*
+function captureVideo() {
+    console.log("Capturing " + currentSource,videosources[currentSource]);
+    var mediaOptions = {
+        audio: {
+            optional: [{sourceId: audioSource}]
+        },
+        video: {
+            optional: [
+                {sourceId: videosources[currentSource].id}
+            ]
+        }};
+    navigator.getUserMedia(mediaOptions, success, errorCallback);
+}
+/*
+var currentSource=0;
+var videosources = [];
+var lastStream;
+function success(stream) {
+
+    console.log("the stream" + currentSource,stream);
+    video.src = window.URL.createObjectURL(stream);
+    video.play();
+//    lastStream=stream;
+}
+function next(){
+
+   // if(lastStream){
+   //     lastStream.stop();
+  //  }
+    video.src = "";
+    if(currentSource < videosources.length-1){
+        currentSource+=1;
+    }
+    else
+    {
+        currentSource=0;
+    }
+    captureVideo();
+}
+*/
+
+function blackExistInPixel(pixel_data,w,nb,x,y) {
+    BLACK_COLOR_MAX = 10;
+
+    pixel_offset = {
+        RED_OFFSET:0
+        , GREEN_OFFSET:1
+        , BLUE_OFFSET:2
+        , ALPHA_OFFSET:3
+    }
+
+    pixel_sum = 0;
+
+    $.each(pixel_offset, function (offset_type, offset_value) {
+        pixel_location = ((w * y) + x) * pixel_offset.length + offset_value;
+        pixel_sum += pixel_data[pixel_location];
+    });
+
+    is_black =  pixel_sum < BLACK_COLOR_MAX;
+    return (nb == true) ? (! is_black) : is_black;
+}
+
+function blackExistInYRange(pixel_data,w,nb,x,y_start,y_end) {
+    var start = (y_start >= y_end) ? y_start : y_end;
+    var end = (y_start < y_end) ? y_start : y_end;
+
+    for (y = start; y <= end; y++) {
+        if (blackExistInPixel(pixel_data,w,x,y)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function blackExistInXRange(pixel_data,w,nb,y,x_start,x_end) {
+    var start = (x_start >= x_end) ? x_start : x_end;
+    var end = (x_start < x_end) ? x_start : x_end;
+
+    for (x = start; x <= end; x++) {
+        if (blackExistInPixel(pixel_data,w,x,y)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function blackExistInPerimeter(pixel_data,iw,nb,x,y,w,h) {
+    if (blackExistsInXRange(pixel_data,iw,nb,y,x,x+w)) {
+       return true;
+    }
+
+    if (blackExistsInXRange(pixel_data,iw,nb,y+h,x,x+w)) {
+       return true;
+    }
+
+    if (blackExistsInYRange(pixel_data,iw,nb,x,y,y+h)) {
+       return true;
+    }
+
+    if (blackExistsInYRange(pixel_data,iw,nb,x+w,y,y+h)) {
+       return true;
+    }
+
+    return false;
+}
+
+function objectInBounds(pixel_data, min_bound, max_bound) {
+    return (blackExistInPerimeter(pixel_data,iw,false,max_bound.x, max_bound.y,max_bound.w,max_bound.h)) && (blackExistInPerimeter(pixel_data,iw,true,min_bound.x, min_bound.y,min_bound.w,min_bound.h));
+}
+
+function objectsInBounds(pixel_data, bounds) {
+    found_all = true;
+    $.each(bounds, function (index, bound) {
+        found_all = (found_all && (objectInBounds(pixel_data, bound.min_bound, bound.max_bound)));
+    });
+    return found_all;
+}
+video.addEventListener('playing', function(){
+    //delay for settling...
+    setTimeout(draw,3,video,context,(1*canvas.clientWidth),cw,ch, context1);
+
+},false);
+
+convolute = function(pixels, ctx, weights, opaque) {
+  var side = Math.round(Math.sqrt(weights.length));
+  var halfSide = Math.floor(side/2);
+  var src = pixels.data;
+  var sw = pixels.width;
+  var sh = pixels.height;
+  // pad output by the convolution matrix
+  var w = sw;
+  var h = sh;
+  var output = ctx.createImageData(w,h);
+  var dst = output.data;
+  // go through the destination image pixels
+  var alphaFac = opaque ? 1 : 0;
+  for (var y=0; y<h; y++) {
+    for (var x=0; x<w; x++) {
+      var sy = y;
+      var sx = x;
+      var dstOff = (y*w+x)*4;
+      // calculate the weighed sum of the source image pixels that
+      // fall under the convolution matrix
+      var r=0, g=0, b=0, a=0;
+      for (var cy=0; cy<side; cy++) {
+        for (var cx=0; cx<side; cx++) {
+          var scy = sy + cy - halfSide;
+          var scx = sx + cx - halfSide;
+          if (scy >= 0 && scy < sh && scx >= 0 && scx < sw) {
+            var srcOff = (scy*sw+scx)*4;
+            var wt = weights[cy*side+cx];
+            r += src[srcOff] * wt;
+            g += src[srcOff+1] * wt;
+            b += src[srcOff+2] * wt;
+            a += src[srcOff+3] * wt;
+          }
+        }
+      }
+      dst[dstOff] = r;
+      dst[dstOff+1] = g;
+      dst[dstOff+2] = b;
+      dst[dstOff+3] = a + alphaFac*(255-a);
+    }
+  }
+  return output;
+}
+function draw(v,c,l,w,h,c1) {
+    //if(v.paused || v.ended) return false;
+    console.log("drawing",l)
+    c.drawImage(v,l,0,w,h);
+    idata = c.getImageData(0,0,cw,ch)
+    var imageData = c.getImageData(0,0,canvas.width, canvas.height);
+
+    imageData = convolute(imageData,c,[  0, -1,  0, -1,  5, -1, 0, -1,  0 ]);
+    var data = imageData.data;
+    for (var i = 0; i < data.length; i += 4) {
+     var avg = ((data[i] + data[i +1] + data[i +2]) < 10) ? 0 : 255;//((data[i] + data[i +1] + data[i +2]) / 3);
+      //data[i]     = avg; // red
+      //data[i + 1] = avg; // green
+      //data[i + 2] = avg; // blue
+      //avg = ((0.2126*data[i])+(0.7152*data[i+1])+(0.0722*data[i+2])) > 127 ?255 : 0;
+     // data[i]     = avg; // red
+      //data[i + 1] = avg; // green
+      //data[i + 2] = avg; // blue
+
+    }
+
+    bounds = [{min_bound:{x:15,y:15,w:10,h:10}, max_bound:{x:10,y:10,w:20,h:20}}];
+
+    c1.strokeStyle = 'yellow';
+    $.each(bounds, function (index, bound) {
+        $.each(bound, function (index1, rect) {
+            c1.strokeRect(rect.x, rect.y, rect.w, rect.h);
+        });
+    });
+
+   // imageData = convolute(imageData,c,[  0, -1,  0, -1,  5, -1, 0, -1,  0 ]);
+    c.putImageData(imageData, 0, 0);
+    setTimeout(draw,3,video,context,(1*canvas.clientWidth/2),cw,ch,c1);
+}
+
+MediaStreamTrack.getSources(function (sourceInfos) {
+    videosources=[];
+    var video_src = false;
+    //for (var i = 0; i != sourceInfos.length; ++i) {
+    //    var sourceInfo = sourceInfos[i];
+    $.each(sourceInfos, function (index, sourceInfo) {
+        if (sourceInfo.kind === 'audio') {
+            console.log(sourceInfo.id, sourceInfo.label || 'microphone');
+            audioSource=sourceInfo.id;
+
+        } else if (sourceInfo.kind === 'video') {
+            console.log(sourceInfo.id, sourceInfo.facing, sourceInfo.label || 'camera');
+            videosources.push(sourceInfo);
+            if (sourceInfo.facing == 'environment') {
+                video_src = sourceInfo.id;
+            }
+
+        } else {
+            console.log('Some other kind of source: ', sourceInfo);
+        }
+    });
+//console.log("sources",videosources)
+    //next();
+    count = 1;
+    //video_src = JSON.stringify(sourceInfos);
+    //alert(video_src);
+
+            if (! video_src) {
+                video_src = false;
+            }
+   // $.each(videosources, function (index, item) {
+
+    //    alert(JSON.stringify(item));
+        var mediaOptions = {
+            audio: audioSource
+            ,
+            video: {
+                optional: [
+                    {sourceId: video_src,},
+                    {minWidth: 320},
+   // {minWidth: 640},
+  //  {minWidth: 1024},
+    {minWidth: 1280},
+    {minWidth: 1920},
+    {minWidth: 2560}
+                ]
+            }};
+
+        var rvideo = document.getElementById('video2');
+  //      alert(rvideo);
+//alert(JSON.stringify(mediaOptions));
+        count++;
+
+        if (count > 1) {
+        window.setTimeout(function(){
+            navigator.getUserMedia(mediaOptions
+                               , function (stream) {
+                                   rvideo.src = window.URL.createObjectURL(stream);
+                               }, errorCallback)}, 3);
+        }
+        //return false
+   // });
+});
+}
+webcam();
+</script>
+
+    </body>
+</html>

@@ -1,0 +1,135 @@
+<html>
+
+<head>
+    <!-- include stylesheets -->
+  {{
+  response.files.insert(0,URL('static','css/web2py.css'))
+  response.files.insert(1,URL('static','css/bootstrap.min.css'))
+  response.files.insert(2,URL('static','css/bootstrap-responsive.min.css'))
+  response.files.insert(3,URL('static','css/web2py_bootstrap.css'))
+  response.files.insert(4,URL('static','js/trackingjs/examples/assets/demo.css'))
+  }}
+    {{include 'web2py_ajax.html'}}
+    <script src="{{=URL('static','js/bootstrap.min.js')}}"></script>
+    <script src="{{=URL('static','js/trackingjs/build/tracking.js')}}"></script>
+    <script src="{{=URL('static','js/core/sheet_reference.js')}}"></script>
+</head>
+<body>
+  <style>
+  video, canvas {
+    margin-left: 100px;
+    margin-top: 35px;
+    left:0px;
+    top:0px;
+    position: absolute;
+  }
+  video {
+      z-index: 1000;
+  }
+  canvas {
+      z-index: 30000;
+  }
+  .canvas1 {
+      z-index: 40000;
+  }
+  </style>
+<div class="demo-frame">
+    <div class="demo-container">
+      <video id="video" width="600" height="450" preload autoplay loop muted controls></video>
+      <canvas id="canvas" width="600" height="450"></canvas>
+      <canvas id="canvas1" width="600" height="450"></canvas>
+    </div>
+  </div>
+<script>
+function processCanvas() {
+    var video = this;
+    var canvas = document.getElementById('canvas1');
+
+    var context = canvas.getContext('2d');
+alert($(video).css('left'));
+    var top = $(video).css('top').replace(/[a-zA-Z]+/,'');
+    var left = $(video).css('left').replace(/[a-zA-Z]+/,'');
+    var height = $(video).css('height').replace(/[a-zA-Z]+/,'');
+    var width = $(video).css('width').replace(/[a-zA-Z]+/,'');
+    alert(top + ':' + left + ':' + width + ':' + height + ':');
+    context.strokeStyle = 'red';
+    context.strokeRect(left, top, canvas.width, canvas.height);
+}
+$(document).ready(function() {
+
+
+        var sources = MediaStreamTrack.getSources(function (sourceInfos) {
+            videosources = [];
+
+            for (var i = 0; i != sourceInfos.length; ++i) {
+                var sourceInfo = sourceInfos[i];
+                if (sourceInfo.kind === 'audio') {
+                    audioSource=sourceInfo.id;
+
+                } else if (sourceInfo.kind === 'video') {
+                    videosources.push(sourceInfo);
+
+                }
+            }
+            var video = document.getElementById('video');
+            var canvas = document.getElementById('canvas');
+            var context = canvas.getContext('2d');
+
+
+
+            tracking.ColorTracker.registerColor('black', function(r, g, b) {
+                return r + g + b < 10;
+            });
+
+            var tracker = new tracking.ColorTracker(['black']);
+            tracker.setMinDimension(2);
+            tracker.setMinGroupSize(2);
+            video_src = $(videosources).get(-1);
+
+            if (! video_src) {
+                video_src = false;
+            }
+
+             var tparams = { camera: true, video_source: video_src }
+
+             tracking.track('#video', tracker, tparams);
+              /*var mref = SheetReferenceJs.create({
+
+              });*/
+
+
+             tracker.on('track', function(event) {
+              context.clearRect(0, 0, canvas.width, canvas.height);
+              if (event.data.length === 0) {
+                // $('#data_r').val('');
+              } else {
+                  $('#data_r').children().remove();
+                event.data.forEach(function(rect) {
+                    var  sr = SheetReferenceJs.create(rect);
+                    $.each(refs, function (index, item) {
+                        if (item.withinBounds(sr)) {
+
+                            alert('found');
+                        }
+
+                    });
+                  context.strokeStyle = 'yellow';
+                  context.strokeRect(rect.x, rect.y, rect.width, rect.height);
+                  context.font = '11px Helvetica';
+                  context.fillStyle = "#fff";
+                    $('#data_r').append("<div>" + rect.x + ':' + rect.y + ':' + rect.width + ':' + rect.height + ':' + rect.color + "</div>");
+               });
+            }
+          });
+
+        });
+   });
+// video.addEventListener("play", function(){
+              processCanvas();
+  //      });
+
+    // initGUIControllers(tracker);
+
+  </script>
+</body>
+</html>
