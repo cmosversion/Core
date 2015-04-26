@@ -63,5 +63,4 @@ errors/*
 errors/*.*
 sessions
 cache/*
-*.table
 !Plan
